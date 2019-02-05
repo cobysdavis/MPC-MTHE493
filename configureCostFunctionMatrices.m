@@ -3,7 +3,7 @@ function [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_
 warehouse_selector=zeros(1,n);
 for i=1:n
     if ismember(i,warehouse_nodes)
-        warehouse_selector(i)=1;
+        warehouse_selector(i)=2.5;
     end
 end
 
@@ -17,21 +17,21 @@ end
 retail_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),retail_nodes) && ismember(edge_start(i),warehouse_nodes)
-        retail_path_selector(i)=10;
+        retail_path_selector(i)=20;
     end
 end
 
 warehouse_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),warehouse_nodes)
-        warehouse_path_selector(i)=1;
+        warehouse_path_selector(i)=15;
     end
 end
 
 plant_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),plant_nodes)
-        plant_path_selector(i)=1;
+        plant_path_selector(i)=15;
     end
 end
 

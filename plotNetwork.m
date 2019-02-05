@@ -10,14 +10,14 @@ function p = plotNetwork(G,warehouse_nodes,retail_nodes,plant_nodes,start_nodes,
     %Colour reatil nodes green, warehouse red
     highlight(p,warehouse_nodes,'NodeColor','r')
     highlight(p,retail_nodes,'NodeColor','g')
-    highlight(p,plant_nodes,'NodeColor','b')
+    highlight(p,plant_nodes,'NodeColor','m')
 
     
     for i=1:num_edges
         if ismember(start_nodes(i),warehouse_nodes) && ismember(end_nodes(i),warehouse_nodes)
             highlight(p,[start_nodes(i) end_nodes(i)],'EdgeColor','r')
         elseif ismember(start_nodes(i),plant_nodes) && ismember(end_nodes(i),warehouse_nodes)
-            highlight(p,[start_nodes(i) end_nodes(i)],'EdgeColor','b')
+            highlight(p,[start_nodes(i) end_nodes(i)],'EdgeColor','m')
         else
             highlight(p,[start_nodes(i) end_nodes(i)],'EdgeColor','g')
         end
