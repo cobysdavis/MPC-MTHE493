@@ -2,9 +2,9 @@ close all
 clc
 %% Choose what this code saves/outputs:
 network_plot=1;
-run_cvx=0;
-state_control_graphs=0;
-movie_plot=0;
+run_cvx=1;
+state_control_graphs=1;
+movie_plot=1;
 save_movie_plot=0;
 save_video_as_avi=0;
 %% Create Graph
@@ -17,8 +17,8 @@ retail_nodes=6:8;
 plant_nodes=9:10;
 nodes=[warehouse_nodes,retail_nodes,plant_nodes];
 % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
-initial_warehouse_distribution=1000*ones(1,length(warehouse_nodes));
-initial_plant_distribution=50000*ones(1,length(plant_nodes));
+initial_warehouse_distribution=100*ones(1,length(warehouse_nodes));
+initial_plant_distribution=500*ones(1,length(plant_nodes));
 % initial_warehouse_distribution=10*[40;17;58;61];
 %start nodes
 start_nodes = [1 1 1 2 2 3 3 3 4 4 4 5 5 5 9 9 9 9 10 10 10];
@@ -45,18 +45,19 @@ Incidence=computeIncidence(G);
 %% Plotting edge labels and colours and order
 [nonretail_paths,retail_paths]=computeRetailPaths(G,warehouse_nodes,retail_nodes,start_nodes,end_nodes);
 [edge_start,edge_end]=computeEdges(Incidence,G);
+figure
 if network_plot==1
     p=plotNetwork(G,warehouse_nodes,retail_nodes,plant_nodes,start_nodes,end_nodes,edge_start,edge_end);
 end
 
 %Cost function matrices
-[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
+[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_selector_cost,plant_path_selector]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
 controls=[];
 cost=[];
-production_rate=0;
-time_length=2;%overall lengthg of time which program runs for
-horizons=[2];% list of T values (look ahead times)
+production_rate=55;
+time_length=10;%overall lengthg of time which program runs for
+horizons=[1 2 10];% list of T values (look ahead times)
 xhorizons={};
 uhorizons={};
 
@@ -75,8 +76,10 @@ if run_cvx==1
         x_min_vector=x_min*ones(n,T);
         x_0=setUpx_0(retail_nodes,warehouse_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,nodes);
         actual_cost=0;
-        state=[x_0];
-        controls=[];
+        state=[x_0]; % trajectory system actually takes num_nodes*time_length matrix
+        controls=[]; % control actions system actually takes num_paths*time_length matrix
+        xs=[]; % all state values that were computed along the way
+        us=[];  % all control values that were computed along the way
         for i=1:time_length
             cvx_begin quiet
             disp(strcat(strcat('calculating optimal control: ',num2str(i)),strcat(' for horizon T=',num2str(T))))
@@ -84,7 +87,10 @@ if run_cvx==1
             minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(warehouse_selector*x+plant_selector*x)))
             subject to
             %system dynamics:
-            x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end)
+            %with production rate
+            x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end)+repmat(production_rate*transpose(plant_selector),1,T);
+            %without production rate
+            %x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end);
             %shipping constraints
             x <= x_max_vector;
             x >= x_min_vector;
@@ -97,10 +103,14 @@ if run_cvx==1
             state=[state,x(:,1)];
             %randomness and production rate
             %-5 + (5+5)*rand(10,1)
-            rand_rate=0.05;
+            rand_rate=0;
             r=-rand_rate+(rand_rate)*rand(n,1);
-            state(:,end)=transpose(production_rate*plant_selector)+max(state(:,end)+state(:,end).*r,0)
+            %with random error
+%           state(:,end)=transpose(production_rate*plant_selector)+max(state(:,end)+state(:,end).*r,0);
+%           without random error
             controls=[controls,u(:,1)];
+            xs=[xs x];
+            us=[us u];
         end
         cost=[cost,actual_cost];
         xhorizons{end+1}=state;
@@ -144,7 +154,7 @@ if state_control_graphs==1
     figure
     time=1:time_length+1;
     for j=1:length(horizons)
-        x=cell2mat(xhorizons(j));
+        x=cell2mat(xhorizons(j))
         stairs(time,x(5,:));
         hold on
     end
