@@ -19,21 +19,21 @@ plant_selector_cost=plant_selector*5;
 retail_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),retail_nodes) && ismember(edge_start(i),warehouse_nodes)
-        retail_path_selector(i)=20;
+        retail_path_selector(i)=100;
     end
 end
 
 warehouse_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),warehouse_nodes)
-        warehouse_path_selector(i)=15;
+        warehouse_path_selector(i)=5;
     end
 end
 
 plant_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),plant_nodes)
-        plant_path_selector(i)=15;
+        plant_path_selector(i)=5;
     end
 end
 

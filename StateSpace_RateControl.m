@@ -1,9 +1,9 @@
 close all
 clc
 %% Choose what this code saves/outputs:
-network_plot=1;
+network_plot=0;
 run_cvx=1;
-state_control_graphs=1;
+state_control_graphs=0;
 movie_plot=1;
 save_movie_plot=0;
 save_video_as_avi=0;
@@ -12,22 +12,25 @@ save_video_as_avi=0;
 % to be n1:n2
 
 %manual graph generation
-warehouse_nodes=1:5;
-retail_nodes=6:8;
-plant_nodes=9:10;
+warehouse_nodes=1:4;
+retail_nodes=5:7;
+plant_nodes=8:9;
 nodes=[warehouse_nodes,retail_nodes,plant_nodes];
 % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
-initial_warehouse_distribution=100*ones(1,length(warehouse_nodes));
-initial_plant_distribution=500*ones(1,length(plant_nodes));
+initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
+initial_plant_distribution=20*ones(1,length(plant_nodes));
 % initial_warehouse_distribution=10*[40;17;58;61];
 %start nodes
-start_nodes = [1 1 1 2 2 3 3 3 4 4 4 5 5 5 9 9 9 9 10 10 10];
+start_nodes = [8 8 9 9 1 2 1 2 4 4 3];
 %end nodes
-end_nodes =   [2 3 5 1 4 1 4 5 6 7 8 6 7 8 1 2 3 4 1 2 3];
+end_nodes =   [1 2 1 2 3 4 4 5 5 6 7];
+
+
 
 %automatic graph generation
 % warehouse_nodes=1:10;
 % retail_nodes=11:14;
+
 % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)))
 % pw=0.6;
 % pr=0.3;
@@ -55,40 +58,45 @@ end
 %% CVX Implementation
 controls=[];
 cost=[];
-production_rate=55;
-time_length=10;%overall lengthg of time which program runs for
-horizons=[1 2 10];% list of T values (look ahead times)
+rate=[];
+time_length=30;%overall lengthg of time which program runs for
+horizons=[10];% list of T values (look ahead times)
 xhorizons={};
 uhorizons={};
-
+rhorizons={};
 if run_cvx==1
     for j=1:length(horizons)
         T=horizons(j);
         %% CVX Setup
         % max constraints, initial condition
-        u_max=50;
+        u_max=10;
         u_min=0;
         x_max=100000;
         x_min=0;
+        rate_max=55;
+        rate_min=0;
         u_max_vector = u_max*ones(m,T);
         u_min_vector=u_min*ones(m,T);
         x_max_vector = x_max*ones(n,T);
         x_min_vector=x_min*ones(n,T);
+        rate_max_vector=rate_max*repmat(transpose(plant_selector),1,T);
+        rate_min_vector=rate_min*repmat(transpose(plant_selector),1,T);
         x_0=setUpx_0(retail_nodes,warehouse_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,nodes);
         actual_cost=0;
         state=[x_0]; % trajectory system actually takes num_nodes*time_length matrix
         controls=[]; % control actions system actually takes num_paths*time_length matrix
         xs=[]; % all state values that were computed along the way
         us=[];  % all control values that were computed along the way
+        rs=[];  % all rate control values that were computed along the way
         for i=1:time_length
             cvx_begin quiet
             disp(strcat(strcat('calculating optimal control: ',num2str(i)),strcat(' for horizon T=',num2str(T))))
-            variables x(n,T) u(m,T)
-            minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(warehouse_selector*x+plant_selector*x)))
+            variables x(n,T) u(m,T) rate(n,T)
+            minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(rate))+sum(sum(warehouse_selector*x+plant_selector*x)));
             subject to
             %system dynamics:
             %with production rate
-            x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end)+repmat(production_rate*transpose(plant_selector),1,T);
+            x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end)+rate(:,1:end);
             %without production rate
             %x(:,1:end)==[state(:,end) x(:,1:end-1)]+Incidence*u(:,1:end);
             %shipping constraints
@@ -97,21 +105,32 @@ if run_cvx==1
             %storage constraints
             u <= u_max_vector;
             u >= u_min_vector;
+            %rate constraints
+            rate <= rate_max_vector;
+            rate >= rate_min_vector;
+            
             cvx_end
+            
+            %manual cost calculation
             cost_at_moment=warehouse_path_selector*u(:,1)+plant_path_selector*u(:,1)-retail_path_selector*u(:,1)+warehouse_selector*x(:,1)+plant_selector*x(:,1);
             actual_cost=actual_cost+cost_at_moment;
             state=[state,x(:,1)];
+            rate=[rate,rate(:,1)];
             %randomness and production rate
             %-5 + (5+5)*rand(10,1)
             rand_rate=0;
             r=-rand_rate+(rand_rate)*rand(n,1);
             %with random error
-%           state(:,end)=max(state(:,end)+state(:,end).*r,0);
+                %state(:,end)=transpose(production_rate*plant_selector)+max(state(:,end)+state(:,end).*r,0);
             controls=[controls,u(:,1)];
+            %saving all possible controls thrhoughout time for one single horizon
             xs=[xs x];
             us=[us u];
+            rs=[rs rate];
         end
+        %saving all actual costs
         cost=[cost,actual_cost];
+        %storing all state in cell data structure from all horizons
         xhorizons{end+1}=state;
         uhorizons{end+1}=controls;
     end
