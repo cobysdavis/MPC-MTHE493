@@ -1,7 +1,7 @@
 close all
 clc
 %% Choose what this code saves/outputs:
-network_plot=0;
+network_plot=1;
 run_cvx=1;
 state_control_graphs=0;
 movie_plot=1;
@@ -12,32 +12,35 @@ save_video_as_avi=0;
 % to be n1:n2
 
 %manual graph generation
-warehouse_nodes=1:4;
-retail_nodes=5:7;
-plant_nodes=8:9;
-nodes=[warehouse_nodes,retail_nodes,plant_nodes];
-% initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
-initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
-initial_plant_distribution=20*ones(1,length(plant_nodes));
-% initial_warehouse_distribution=10*[40;17;58;61];
-%start nodes
-start_nodes = [8 8 9 9 1 2 1 2 4 4 3];
-%end nodes
-end_nodes =   [1 2 1 2 3 4 4 5 5 6 7];
+% warehouse_nodes=1:4;
+% retail_nodes=5:7;
+% plant_nodes=8:9;
+% nodes=[warehouse_nodes,retail_nodes,plant_nodes];
+% % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
+% initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
+% initial_plant_distribution=20*ones(1,length(plant_nodes));
+% % initial_warehouse_distribution=10*[40;17;58;61];
+% %start nodes
+% start_nodes = [8 8 9 9 1 2 1 2 4 4 3];
+% %end nodes
+% end_nodes =   [1 2 1 2 3 4 4 5 5 6 7];
 
 
 
 %automatic graph generation
-% warehouse_nodes=1:10;
-% retail_nodes=11:14;
+warehouse_nodes=1:6;
+retail_nodes=7:9;
+plant_nodes=10:14;
+nodes=[warehouse_nodes,retail_nodes,plant_nodes];
+initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
+initial_plant_distribution=800*ones(1,length(plant_nodes));
+pw=0.2;
+pr=0.2;
+pp=0.2;
+[start_nodes,end_nodes]=generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,pw,pr,pp);
+[retail_nodes,plant_nodes]=cleanUp(start_nodes,end_nodes,warehouse_nodes,retail_nodes,plant_nodes);
 
-% initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)))
-% pw=0.6;
-% pr=0.3;
-% [start_nodes,end_nodes]=generateRandomGraph(warehouse_nodes,retail_nodes,pw,pr);
-% retail_nodes=cleanUpNodes(retail_nodes,end_nodes);
-% nodes=[warehouse_nodes,plant_nodes,retail_nodes];
-%
+
 
 %defining the digraph based on start,end
 G=digraph(start_nodes,end_nodes);
@@ -59,8 +62,8 @@ end
 controls=[];
 cost=[];
 rate=[];
-time_length=30;%overall lengthg of time which program runs for
-horizons=[10];% list of T values (look ahead times)
+time_length=10;%overall lengthg of time which program runs for
+horizons=[5];% list of T values (look ahead times)
 xhorizons={};
 uhorizons={};
 rhorizons={};
@@ -69,7 +72,7 @@ if run_cvx==1
         T=horizons(j);
         %% CVX Setup
         % max constraints, initial condition
-        u_max=10;
+        u_max=120;
         u_min=0;
         x_max=100000;
         x_min=0;
@@ -81,7 +84,7 @@ if run_cvx==1
         x_min_vector=x_min*ones(n,T);
         rate_max_vector=rate_max*repmat(transpose(plant_selector),1,T);
         rate_min_vector=rate_min*repmat(transpose(plant_selector),1,T);
-        x_0=setUpx_0(retail_nodes,warehouse_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,nodes);
+        x_0=setUpx_0(n,retail_nodes,warehouse_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,nodes);
         actual_cost=0;
         state=[x_0]; % trajectory system actually takes num_nodes*time_length matrix
         controls=[]; % control actions system actually takes num_paths*time_length matrix
@@ -180,85 +183,7 @@ if state_control_graphs==1
     xlabel('Time')
     ylabel('State Value') 
 end
+
 %% Movie
-if movie_plot==1
-    M((time_length+1)*length(horizons)) = struct('cdata',[],'colormap',[]);
-    f=figure;
-    position=[80 80 1200 900];
-    set(f, 'Position',position);
-    red=[1 0 0];
-    green=[0 1 0];
-    magenta=[1 0 1];
-    NodeColors=[];
-    for i=nodes
-        if ismember(i,warehouse_nodes)
-            NodeColors=[NodeColors;red];
-        elseif ismember(i,plant_nodes)
-            NodeColors=[NodeColors;magenta];
-        else
-            NodeColors=[NodeColors;green];
-            
-        end
-    end
-    
-    %Modify state and controls so that they are visible for plotting (no
-    %non-zero states or controls on plots for line width purposes)
-    for horizon=1:length(horizons)
-        controls=[cell2mat(uhorizons(horizon)),zeros(m,1)];
-        state=cell2mat(xhorizons(horizon));
-        nonzero_rounded_controls=round(controls);
-        for t=1:time_length+1
-            for i=1:m
-                if nonzero_rounded_controls(i,t)<=0.1
-                    nonzero_rounded_controls(i,t)=1;
-                end
-            end
-        end
-        rounded_state=round(state);
-        nonzero_rounded_state=round(state);
-        for t=1:time_length+1
-            for i=1:n
-                if nonzero_rounded_state(i,t)<=0.001
-                    nonzero_rounded_state(i,t)=1;
-                end
-            end
-        end
-        
-        count=1;
-        for t=1:time_length+1
-            LWidths = 3*nonzero_rounded_controls(:,t)/u_max;
-            Names=cell(n,1);
-            for k=1:n
-                Names{k}=num2str(rounded_state(k,t));
-            end
-            h=plot(G,'EdgeLabel',round(controls(:,t)),'LineWidth',LWidths,'NodeLabel',Names,'ArrowSize',12,'NodeColor',NodeColors);
-            for i=1:m
-                if ismember(start_nodes(i),warehouse_nodes) && ismember(end_nodes(i),warehouse_nodes)
-                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','r')
-                elseif ismember(start_nodes(i),plant_nodes) && ismember(end_nodes(i),warehouse_nodes)
-                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','m')
-                else
-                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','g')
-                end
-            end
-            h.MarkerSize=25*sqrt(nonzero_rounded_state(:,t)/max(nonzero_rounded_state(:,t)));
-            legend(strcat('t= ',num2str(t)));
-            title(strcat('Horizon Length= ',num2str(horizons(horizon))));
-            M(t) = getframe(gca);
-        end
-    end
-    
-    if save_movie_plot==1
-        fig = figure;
-        set(fig, 'Position',position);
-%movie(M,time to replay, fps)
-        movie(M,1,5);
-        if save_video_as_avi==1
-            v = VideoWriter('/Users/cobydavis/Desktop/supplychain.avi');
-            v.FrameRate=4;
-            open(v);
-            writeVideo(v,M);
-            close(v);
-        end
-    end
-end
+movie_name='production_control';
+plotMovie(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)

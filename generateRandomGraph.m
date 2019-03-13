@@ -1,4 +1,4 @@
-function [start_nodes,end_nodes] = generateRandomGraph(warehouse_nodes,retail_nodes,percent_warehouse_connect,percent_retail_connect)
+function [start_nodes,end_nodes] = generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,percent_warehouse_connect,percent_retail_connect,percent_plant_connect)
 start_nodes=[];
 end_nodes=[];
 for i=warehouse_nodes
@@ -15,7 +15,14 @@ for i=warehouse_nodes
           end_nodes=[end_nodes,k];
         end
     end
+    for l=plant_nodes
+        if rand()>=1-percent_plant_connect && i~=l
+          start_nodes=[start_nodes,l];
+          end_nodes=[end_nodes,i];
+        end
+    end
 end
+
 % end_retail=[];
 % end_warehouse=[];
 % for i=end_nodes
