@@ -1,17 +1,19 @@
 close all
 clc
+clear all
 %% Choose what this code saves/outputs:
-network_plot=0;
+network_plot=1;
 run_cvx=1;
 state_control_graphs=1;
-movie_flag=1;
+movie_flag=0;
 save_movie_plot=0;
 save_video_as_avi=0;
+movie_name='production_rate_cost_over_varying_time_horizons';
 %% Create Graph
 % choose retail and warehouse nodes. choose warehouse to be 1:n1, and retail
 % to be n1:n2
 
-%manual graph generation
+% %manual graph generation
 % warehouse_nodes=1:4;
 % retail_nodes=5:7;
 % plant_nodes=8:10;
@@ -25,17 +27,18 @@ save_video_as_avi=0;
 % %end nodes
 % end_nodes =   [1 2 1 2 3 4 4 5 5 6 7 2 3 4 1 4 3];
 
-
-%automatic graph generation
-warehouse_nodes=1:6;
-retail_nodes=7:9;
-plant_nodes=10:14;
+% automatic graph generation
+warehouse_nodes=1:5;
+retail_nodes=6:8;
+plant_nodes=9:11;
+rng(1,'twister');
+a = rng;
 nodes=[warehouse_nodes,retail_nodes,plant_nodes];
 initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
 initial_plant_distribution=800*ones(1,length(plant_nodes));
-pw=0.5;
-pr=0.5;
-pp=0.4;
+pw=0.7;
+pr=0.6;
+pp=0.5;
 [start_nodes,end_nodes]=generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,pw,pr,pp);
 [retail_nodes,plant_nodes]=cleanUp(start_nodes,end_nodes,warehouse_nodes,retail_nodes,plant_nodes);
 
@@ -49,26 +52,30 @@ Incidence=computeIncidence(G);
 [nonretail_paths,retail_paths]=computeRetailPaths(G,warehouse_nodes,retail_nodes,start_nodes,end_nodes);
 [edge_start,edge_end]=computeEdges(Incidence,G);
 
-if network_plot==1
-    figure
-    p=plotNetwork(G,warehouse_nodes,retail_nodes,plant_nodes,start_nodes,end_nodes,edge_start,edge_end);
+if network_plot==1 
+     p=plotNetwork(G,warehouse_nodes,retail_nodes,plant_nodes,start_nodes,end_nodes,edge_start,edge_end);
+%      p2=plotNetworkUSMap(G,warehouse_nodes,retail_nodes,plant_nodes,start_nodes,end_nodes,edge_start,edge_end);
+%      plotConnectedness(warehouse_nodes,retail_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,G)
 end
 
 %Cost function matrices
-[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_selector_cost,plant_path_selector]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
+[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
 
-time_length=30;%overall lengthg of time which program runs for
-horizons=[5 10 15 20];% list of T values (look ahead times)
-rand_rates=[0 0 0 0];
+time_length=50;%overall lengthg of time which program runs for
+% horizons=[1 5 10 20 30 40 45];% list of T values (look ahead times)
+% rand_rates=[0 0 0 0 0 0 0];
+horizons=[1 5 10 20 30 40 45];% list of T values (look ahead times)
+rand_rates=[0 0 0 0 0 0 0];
 xhorizons={};
 uhorizons={};
+rhorizons={};
 u_max=100;
 u_min=0;
 x_max=10000;
 x_min=0;
 x_0=setUpx_0(n,retail_nodes,warehouse_nodes,plant_nodes,initial_warehouse_distribution,initial_plant_distribution,nodes);
-cost=[];
+cost=[];     
 if run_cvx==1
     for j=1:length(horizons)
         T=horizons(j);
@@ -79,14 +86,13 @@ if run_cvx==1
         %[actual_cost,state,controls]=cvx_model_fixed_production_rate_with_rand(production_rate,time_length,T,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,warehouse_selector,plant_selector);
         
         %rate as control
-        rate_max=u_max+50;
+        rate_max=u_max-50;
         rate_min=0;
-        [actual_cost,state,controls,rate]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,warehouse_selector,plant_selector);
-        
-        
+        [actual_cost,state,controls,rate]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector);
         cost=[cost,actual_cost];
         xhorizons{end+1}=state;
         uhorizons{end+1}=controls;
+        rhorizons{end+1}=rate;
     end
 end
 
@@ -124,13 +130,16 @@ if state_control_graphs==1
     for i=1:length(horizons)
         x_legend{end+1}=strcat('Horizon Length:' ,num2str(i));
     end
+%     for node_num=1:n
+%     plot_state_over_horizons(node_num,horizons,xhorizons,time_length,x_legend);
+%     end
+%     
+    for path_num=1:m
+    plot_control_over_horizons(path_num,horizons,uhorizons,time_length,x_legend);
+    end
     
-    node_num=4;
-    plot_state_over_horizons(node_num,horizons,xhorizons,time_length,x_legend);
-
     
-
+    
 end
 %% Movie
-movie_name='production_rate';
 plotMovie(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)

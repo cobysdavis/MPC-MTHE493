@@ -9,5 +9,6 @@ function [] = plot_state_over_horizons(node_num,horizons,xhorizons,time_length,x
     legend(x_legend)
     xlabel('Time')
     ylabel('State Value')
+    title(strcat('Node: ','',string(node_num),' Value Over Time'));
 end
 

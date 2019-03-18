@@ -1,4 +1,6 @@
 function [start_nodes,end_nodes] = generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,percent_warehouse_connect,percent_retail_connect,percent_plant_connect)
+rng(1,'twister');
+a = rng;
 start_nodes=[];
 end_nodes=[];
 for i=warehouse_nodes

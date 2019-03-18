@@ -43,6 +43,7 @@ if movie_flag==1
             end
         end
         
+        NodeColors
         count=1;
         for t=1:time_length+1
             LWidths = 3*nonzero_rounded_controls(:,t)/u_max;
