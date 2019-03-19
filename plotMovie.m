@@ -1,22 +1,41 @@
 function [ ] = plotMovie(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)
-m=numedges(G);
-n=numnodes(G);
+
 if movie_flag==1
+    m=numedges(G);
+    n=numnodes(G);
     M((time_length+1)*length(horizons)) = struct('cdata',[],'colormap',[]);
     f=figure;
+    filename = 'uscities.xlsx';
+    [num,txt,data]= xlsread(filename);
+    n=numnodes(G);
+    cities=(data(2:n+1,1));
+    y=cell2mat(data(2:n+1,3))/-2.8+18.2;
+    x=cell2mat(data(2:n+1,4))/5.9+21.3;
+    num_nodes =numnodes(G);
+    edge_labels = {};
+    for i=1:m
+        edge_labels{end+1}=num2str(i);
+    end
+    img=imread('usmap.jpeg');
+    min_x = 0;
+    max_x = 10;
+    min_y = 0;
+    max_y = 10;
+    imagesc([min_x max_x], [min_y max_y], img);
     position=[80 80 1200 900];
+    hold on
     set(f, 'Position',position);
     red=[1 0 0];
     green=[0 1 0];
-    magenta=[1 0 1];
+    blue=[0 0 1];
     NodeColors=[];
     for i=1:length(nodes)
         if ismember(nodes(i),warehouse_nodes)
-            NodeColors=[NodeColors;red];
+            NodeColors=[NodeColors;blue];
         elseif ismember(nodes(i),plant_nodes)
-            NodeColors=[NodeColors;magenta];
-        else
             NodeColors=[NodeColors;green];
+        else
+            NodeColors=[NodeColors;red];
             
         end
     end
@@ -42,8 +61,6 @@ if movie_flag==1
                 end
             end
         end
-        
-        NodeColors
         count=1;
         for t=1:time_length+1
             LWidths = 3*nonzero_rounded_controls(:,t)/u_max;
@@ -51,14 +68,17 @@ if movie_flag==1
             for k=1:n
                 Names{k}=num2str(rounded_state(k,t));
             end
-            h=plot(G,'EdgeLabel',round(controls(:,t)),'LineWidth',LWidths,'NodeLabel',Names,'ArrowSize',12,'NodeColor',NodeColors);
+            imagesc([min_x max_x], [min_y max_y], img);
+            hold on
+            h=plot(G,'EdgeLabel',round(controls(:,t)),'LineWidth',LWidths,'NodeLabel',Names,'ArrowSize',12,'NodeColor',NodeColors,'XData',x,'YData',y);   
+            hold off
             for i=1:m
                 if ismember(start_nodes(i),warehouse_nodes) && ismember(end_nodes(i),warehouse_nodes)
-                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','r')
+                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','b')
                 elseif ismember(start_nodes(i),plant_nodes) && ismember(end_nodes(i),warehouse_nodes)
-                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','m')
-                else
                     highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','g')
+                else
+                    highlight(h,[start_nodes(i) end_nodes(i)],'EdgeColor','r')
                 end
             end
             h.MarkerSize=25*sqrt(nonzero_rounded_state(:,t)/max(nonzero_rounded_state(:,t)));
@@ -71,7 +91,7 @@ if movie_flag==1
     if save_movie_plot==1
         fig = figure;
         set(fig, 'Position',position);
-%movie(M,time to replay, fps)
+        %movie(M,time to replay, fps)
         movie(M,1,5);
         if save_video_as_avi==1
             v = VideoWriter(strcat('/Users/cobydavis/Desktop/',movie_name,'.avi'));
