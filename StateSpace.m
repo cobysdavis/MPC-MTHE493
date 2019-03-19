@@ -3,8 +3,8 @@ clc
 clear all
 %% Choose what this code saves/outputs:
 network_plot=1;
-run_cvx=1;
-state_control_graphs=1;
+run_cvx=0;
+state_control_graphs=0;
 movie_flag=0;
 save_movie_plot=0;
 save_video_as_avi=0;
@@ -62,14 +62,19 @@ end
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
 
-time_length=50;%overall lengthg of time which program runs for
+time_length=5;%overall lengthg of time which program runs for
 % horizons=[1 5 10 20 30 40 45];% list of T values (look ahead times)
 % rand_rates=[0 0 0 0 0 0 0];
-horizons=[1 5 10 20 30 40 45];% list of T values (look ahead times)
-rand_rates=[0 0 0 0 0 0 0];
+horizons=[1];% list of T values (look ahead times)
+rand_rates=[0];
 xhorizons={};
 uhorizons={};
 rhorizons={};
+cpu_time_horizons={};
+opt_band_horizons={};
+solver_iterations_horizons={};
+solver_status_horizons={};
+solver_tolerance_horizons={};
 u_max=100;
 u_min=0;
 x_max=10000;
@@ -88,11 +93,18 @@ if run_cvx==1
         %rate as control
         rate_max=u_max-50;
         rate_min=0;
-        [actual_cost,state,controls,rate]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector);
+        
+        [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector);
         cost=[cost,actual_cost];
         xhorizons{end+1}=state;
         uhorizons{end+1}=controls;
         rhorizons{end+1}=rate;
+        cpu_time_horizons{end+1}=cpu_time;
+        opt_band_horizons{end+1}=opt_band;
+        solver_iterations_horizons{end+1}=solver_iterations;
+        solver_status_horizons{end+1}=solver_status;
+        solver_tolerance_horizons{end+1}=solver_tolerance;
+        
     end
 end
 
@@ -134,11 +146,15 @@ if state_control_graphs==1
 %     plot_state_over_horizons(node_num,horizons,xhorizons,time_length,x_legend);
 %     end
 %     
-    for path_num=1:m
-    plot_control_over_horizons(path_num,horizons,uhorizons,time_length,x_legend);
-    end
-    
-    
+%     for path_num=1:m
+%     plot_control_over_horizons(path_num,horizons,uhorizons,time_length,x_legend);
+%     end
+%    
+% figure
+% plot(100*rand_rates,cost/cost(1)*100)
+% xlabel('Error Rate (%)')
+% ylabel('Efficiency Compared to Errorless System (%)')
+% title('Error Rate vs. Cost')
     
 end
 %% Movie

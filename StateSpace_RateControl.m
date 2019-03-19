@@ -1,10 +1,11 @@
 close all
 clc
+clear all
 %% Choose what this code saves/outputs:
 network_plot=1;
 run_cvx=1;
 state_control_graphs=0;
-movie_plot=1;
+movie_plot=0;
 save_movie_plot=0;
 save_video_as_avi=0;
 %% Create Graph
@@ -57,8 +58,7 @@ if network_plot==1
 end
 
 %Cost function matrices
-[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_selector_cost,plant_path_selector]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
-%% CVX Implementation
+[warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint] = configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m)%% CVX Implementation
 controls=[];
 cost=[];
 rate=[];
@@ -92,10 +92,12 @@ if run_cvx==1
         us=[];  % all control values that were computed along the way
         rs=[];  % all rate control values that were computed along the way
         for i=1:time_length
-            cvx_begin quiet
+            cvx_begin
             disp(strcat(strcat('calculating optimal control: ',num2str(i)),strcat(' for horizon T=',num2str(T))))
             variables x(n,T) u(m,T) rate(n,T)
-            minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(rate))+sum(sum(warehouse_selector*x+plant_selector*x)));
+%             minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(rate))+sum(sum(warehouse_selector*x+plant_selector*x)));
+            minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u)))
+
             subject to
             %system dynamics:
             %with production rate
