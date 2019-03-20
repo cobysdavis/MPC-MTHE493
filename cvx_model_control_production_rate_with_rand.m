@@ -1,4 +1,4 @@
-function [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost] =  cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector);
+function [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost] =  cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector,Aout);
 %% CVX Setup
 % max constraints, initial condition
 u_max_vector = u_max*ones(m,T);
@@ -40,6 +40,8 @@ for i=1:time_length
     %rate constraints
     rate <= rate_max_vector;
     rate >= rate_min_vector;
+    %ship out whats not on hand
+    Aout*u <= x;
     cvx_end
 
     %randomness and production rate

@@ -1,6 +1,4 @@
-rng(1,'twister');
-a = rng;
-A=randi(2,2,2)
-B=randi(2,2,2)
-A=randi(2,2,2)
-
+ans=[]
+for i=1:length(horizons)
+    ans=[ans,mean(cell2mat((solver_tolerance_horizons(i))))]
+end

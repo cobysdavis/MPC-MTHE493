@@ -1,4 +1,4 @@
-function [ Incidence ] = computeIncidence(G)
+function [ Incidence,Ain,Aout ] = computeIncidence(G)
 I=incidence(G);
 length_I=nnz(I);
 num_edges=numedges(G);
@@ -12,6 +12,22 @@ for i=1:num_nodes
             if i==node_i(k) && j==link_j(k)
                 Incidence(i,j)=val(k);    
             end
+        end
+    end
+end
+Ain=Incidence;
+Aout=Incidence;
+s=size(Incidence);
+n=s(1);
+m=s(2);
+for i=1:n
+    for j=1:m
+        if Incidence(i,j)<0
+            Ain(i,j)=0;
+            Aout(i,j)=-Incidence(i,j);
+        end
+        if Incidence(i,j)>0
+            Aout(i,j)=0;
         end
     end
 end

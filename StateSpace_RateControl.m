@@ -5,41 +5,38 @@ clear all
 network_plot=1;
 run_cvx=1;
 state_control_graphs=0;
-movie_plot=0;
+movie_flag=1;
 save_movie_plot=0;
 save_video_as_avi=0;
 %% Create Graph
 % choose retail and warehouse nodes. choose warehouse to be 1:n1, and retail
 % to be n1:n2
 
-%manual graph generation
-% warehouse_nodes=1:4;
-% retail_nodes=5:7;
-% plant_nodes=8:9;
-% nodes=[warehouse_nodes,retail_nodes,plant_nodes];
-% % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
-% initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
-% initial_plant_distribution=20*ones(1,length(plant_nodes));
-% % initial_warehouse_distribution=10*[40;17;58;61];
-% %start nodes
-% start_nodes = [8 8 9 9 1 2 1 2 4 4 3];
-% %end nodes
-% end_nodes =   [1 2 1 2 3 4 4 5 5 6 7];
-
-
-
-%automatic graph generation
 warehouse_nodes=1:6;
 retail_nodes=7:9;
-plant_nodes=10:14;
+plant_nodes=10;
 nodes=[warehouse_nodes,retail_nodes,plant_nodes];
-initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
-initial_plant_distribution=800*ones(1,length(plant_nodes));
-pw=0.2;
-pr=0.2;
-pp=0.2;
-[start_nodes,end_nodes]=generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,pw,pr,pp);
-[retail_nodes,plant_nodes]=cleanUp(start_nodes,end_nodes,warehouse_nodes,retail_nodes,plant_nodes);
+% initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
+initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
+initial_plant_distribution=0*ones(1,length(plant_nodes));
+% initial_warehouse_distribution=10*[40;17;58;61];
+%start nodes
+start_nodes = [10 10 2 2 1 3 4 5 6];
+%end nodes
+end_nodes =   [1 2 7 8 3 4 5 6 9];
+
+%automatic graph generation
+% warehouse_nodes=1:6;
+% retail_nodes=7:9;
+% plant_nodes=10:14;
+% nodes=[warehouse_nodes,retail_nodes,plant_nodes];
+% initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
+% initial_plant_distribution=800*ones(1,length(plant_nodes));
+% pw=0.2;
+% pr=0.2;
+% pp=0.2;
+% [start_nodes,end_nodes]=generateRandomGraph(warehouse_nodes,retail_nodes,plant_nodes,pw,pr,pp);
+% [retail_nodes,plant_nodes]=cleanUp(start_nodes,end_nodes,warehouse_nodes,retail_nodes,plant_nodes);
 
 
 
@@ -59,11 +56,12 @@ end
 
 %Cost function matrices
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint] = configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m)%% CVX Implementation
+retail_path_selector(7)=1000
 controls=[];
 cost=[];
 rate=[];
 time_length=10;%overall lengthg of time which program runs for
-horizons=[5];% list of T values (look ahead times)
+horizons=[1];% list of T values (look ahead times)
 xhorizons={};
 uhorizons={};
 rhorizons={};
@@ -72,11 +70,11 @@ if run_cvx==1
         T=horizons(j);
         %% CVX Setup
         % max constraints, initial condition
-        u_max=120;
+        u_max=100;
         u_min=0;
         x_max=100000;
         x_min=0;
-        rate_max=55;
+        rate_max=50;
         rate_min=0;
         u_max_vector = u_max*ones(m,T);
         u_min_vector=u_min*ones(m,T);
@@ -92,7 +90,7 @@ if run_cvx==1
         us=[];  % all control values that were computed along the way
         rs=[];  % all rate control values that were computed along the way
         for i=1:time_length
-            cvx_begin
+            cvx_begin quiet
             disp(strcat(strcat('calculating optimal control: ',num2str(i)),strcat(' for horizon T=',num2str(T))))
             variables x(n,T) u(m,T) rate(n,T)
 %             minimize(sum(sum(warehouse_path_selector*u+plant_path_selector*u-retail_path_selector*u))+sum(sum(rate))+sum(sum(warehouse_selector*x+plant_selector*x)));

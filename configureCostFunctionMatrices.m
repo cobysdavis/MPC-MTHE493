@@ -21,20 +21,14 @@ end
 retail_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),retail_nodes) && ismember(edge_start(i),warehouse_nodes)
-        %         if i==11
-        %             retail_path_selector(i)=1000
-        %         else
-        %         retail_path_selector(i)=randi(50,1,1)+100;
-        %         end
-        retail_path_selector(i)=randi(50,1,1)+100;
-        
+        retail_path_selector(i)=randi(50,1,1)+100; 
     end
 end
 
 warehouse_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),warehouse_nodes)
-        warehouse_path_selector(i)=randi(10,1,1)+10;
+        warehouse_path_selector(i)=randi(10,1,1)+30;
     end
 end
 
@@ -42,7 +36,7 @@ end
 plant_path_selector=zeros(1,m);
 for i=1:m
     if ismember(edge_end(i),warehouse_nodes) && ismember(edge_start(i),plant_nodes)
-        plant_path_selector(i)=randi(10,1,1)+10;
+        plant_path_selector(i)=randi(10,1,1)+30;
     end
 end
 

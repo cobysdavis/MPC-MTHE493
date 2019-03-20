@@ -3,29 +3,29 @@ clc
 clear all
 %% Choose what this code saves/outputs:
 network_plot=1;
-run_cvx=0;
+run_cvx=1;
 state_control_graphs=0;
-movie_flag=0;
-save_movie_plot=0;
-save_video_as_avi=0;
-movie_name='good_vs_base_example';
+movie_flag=1;
+save_movie_plot=1;
+save_video_as_avi=1;
+movie_name='base_example_bad';
 %% Create Graph
 % choose retail and warehouse nodes. choose warehouse to be 1:n1, and retail
 % to be n1:n2
 
 % %manual graph generation
-warehouse_nodes=1:4;
-retail_nodes=5:7;
-plant_nodes=8:10;
+warehouse_nodes=1:6;
+retail_nodes=7:9;
+plant_nodes=10;
 nodes=[warehouse_nodes,retail_nodes,plant_nodes];
 % initial_warehouse_distribution=round(100*rand(1,length(warehouse_nodes)));
 initial_warehouse_distribution=0*ones(1,length(warehouse_nodes));
-initial_plant_distribution=100*ones(1,length(plant_nodes));
+initial_plant_distribution=0*ones(1,length(plant_nodes));
 % initial_warehouse_distribution=10*[40;17;58;61];
 %start nodes
-start_nodes = [8 8 9 9 1 2 1 2 4 4 3 1 2 3 4 8 10];
+start_nodes = [10 10 2 2 1 3 4 5 6];
 %end nodes
-end_nodes =   [1 2 1 2 3 4 4 5 5 6 7 2 3 4 1 4 3];
+end_nodes =   [1 2 7 8 3 4 5 6 9];
 
 % automatic graph generation
 % warehouse_nodes=1:3;
@@ -51,7 +51,7 @@ G=digraph(start_nodes,end_nodes);
 m=numedges(G);
 n=numnodes(G);
 %% Incidence Matrix
-Incidence=computeIncidence(G);
+[Incidence,Ain,Aout] =computeIncidence(G);
 %% Plotting edge labels and colours and order
 [nonretail_paths,retail_paths]=computeRetailPaths(G,warehouse_nodes,retail_nodes,start_nodes,end_nodes);
 [edge_start,edge_end]=computeEdges(Incidence,G);
@@ -64,12 +64,13 @@ end
 
 %Cost function matrices
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
+ retail_path_selector(7)=1000;
 %% CVX Implementation
-time_length=35;%overall lengthg of time which program runs for
+time_length=15;%overall lengthg of time which program runs for
 % horizons=[1 5 10 20 30 40 45];% list of T values (look ahead times)
 % rand_rates=[0 0 0 0 0 0 0];
-horizons=[1 5 10 15 20 25];% list of T values (look ahead times)
-rand_rates=[0 0 0 0 0 0];
+horizons=[5];% list of T values (look ahead times)
+rand_rates=[0];
 xhorizons={};
 uhorizons={};
 rhorizons={};
@@ -100,7 +101,7 @@ if run_cvx==1
         %rate as control
         rate_max=u_max-50;
         rate_min=0;
-        [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector);
+        [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector,Aout);
         cost=[cost,actual_cost];
         xhorizons{end+1}=state;
         uhorizons{end+1}=controls;
@@ -114,7 +115,6 @@ if run_cvx==1
         storage_cost_horizons{end+1}=storage_cost;
         revenue_generated_horizons{end+1}=revenue_generated;
         production_cost_horizons{end+1}=production_cost;
-        
     end
 end
 
@@ -165,7 +165,6 @@ if state_control_graphs==1
 % xlabel('Error Rate (%)')
 % ylabel('Efficiency Compared to Errorless System (%)')
 % title('Error Rate vs. Cost')
-    
 end
 %% Movie
 plotMovie(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)
