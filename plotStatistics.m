@@ -33,7 +33,6 @@ ylabel('Average Solver Tolerance');
 xlabel('Horizon Length')
 title('Average Solver Tolerance vs. Horizon Length')
 
-
 figure
 plot(horizons,ship_cost)
 hold on
@@ -48,8 +47,5 @@ ylabel('Costs');
 xlabel('Horizon Length')
 title('Costs vs. Horizon Length')
 legend('Shipping Cost','Storage Cost','Production Cost','Revenue Generated','Net Income')
-
-
-
 end
 

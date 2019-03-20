@@ -6,9 +6,9 @@ network_plot=1;
 run_cvx=1;
 state_control_graphs=0;
 movie_flag=1;
-save_movie_plot=0;
-save_video_as_avi=0;
-movie_name='base_example_bad';
+save_movie_plot=1;
+save_video_as_avi=1;
+movie_name='introgoodexample';
 %% Create Graph
 % choose retail and warehouse nodes. choose warehouse to be 1:n1, and retail
 % to be n1:n2
@@ -64,9 +64,9 @@ end
 %Cost function matrices
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
-time_length=20;%overall lengthg of time which program runs for
-horizons=[8 8 8 8 8];% list of T values (look ahead times)
-rand_rates=[0 0.01 0.03 0.05 0.07];
+time_length=45;%overall lengthg of time which program runs for
+horizons=[20];% list of T values (look ahead times)
+rand_rates=[0];
 xhorizons={};
 uhorizons={};
 rhorizons={};
@@ -162,3 +162,4 @@ title('Error Rate vs. Cost')
 end
 %% Movie
 plotMovie(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)
+plotMovieUSMap(movie_flag,save_movie_plot,save_video_as_avi,movie_name,horizons,xhorizons,uhorizons,G,time_length,nodes,warehouse_nodes,retail_nodes,plant_nodes,u_max,x_max,start_nodes,end_nodes)
