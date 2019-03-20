@@ -64,9 +64,9 @@ end
 %Cost function matrices
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
-time_length=20;%overall lengthg of time which program runs for
-horizons=[8 8 8 8 8];% list of T values (look ahead times)
-rand_rates=[0 0.01 0.03 0.05 0.07];
+time_length=25;%overall lengthg of time which program runs for
+horizons=[10 10 10 10];% list of T values (look ahead times)
+rand_rates=[0 0.05 0.1 0.15 0.2];
 xhorizons={};
 uhorizons={};
 rhorizons={};
