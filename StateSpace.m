@@ -5,9 +5,9 @@ clear all
 network_plot=1;
 run_cvx=1;
 state_control_graphs=0;
-movie_flag=1;
-save_movie_plot=1;
-save_video_as_avi=1;
+movie_flag=0;
+save_movie_plot=0;
+save_video_as_avi=0;
 movie_name='introgoodexample';
 %% Create Graph
 % choose retail and warehouse nodes. choose warehouse to be 1:n1, and retail
@@ -64,9 +64,9 @@ end
 %Cost function matrices
 [warehouse_path_selector,retail_path_selector,warehouse_selector,plant_selector,plant_path_selector,plant_selector_constraint]=configureCostFunctionMatrices(warehouse_nodes,retail_nodes,plant_nodes,edge_start,edge_end,n,m);
 %% CVX Implementation
-time_length=45;%overall lengthg of time which program runs for
-horizons=[20];% list of T values (look ahead times)
-rand_rates=[0];
+time_length=20;%overall lengthg of time which program runs for
+horizons=[1 10];% list of T values (look ahead times)
+rand_rates=[0 0];
 xhorizons={};
 uhorizons={};
 rhorizons={};
@@ -79,6 +79,7 @@ shipping_cost_horizons={};
 storage_cost_horizons={};
 revenue_generated_horizons={};
 production_cost_horizons={};
+million_times={};
 u_max=100;
 u_min=0;
 x_max=3000;
@@ -97,7 +98,7 @@ if run_cvx==1
         %rate as control
         rate_max=u_max-50;
         rate_min=0;
-        [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector,Aout);
+        [actual_cost,state,controls,rate,cpu_time,opt_band,solver_iterations,solver_status,solver_tolerance,shipping_cost,storage_cost,revenue_generated,production_cost,milT]=cvx_model_control_production_rate_with_rand(time_length,T,rate_max,rate_min,u_max,u_min,x_max,x_min,x_0,rand_rate,n,m,Incidence,warehouse_path_selector,retail_path_selector,plant_path_selector,plant_selector_constraint,warehouse_selector,plant_selector,Aout);
         cost=[cost,actual_cost];
         xhorizons{end+1}=state;
         uhorizons{end+1}=controls;
@@ -111,6 +112,7 @@ if run_cvx==1
         storage_cost_horizons{end+1}=storage_cost;
         revenue_generated_horizons{end+1}=revenue_generated;
         production_cost_horizons{end+1}=production_cost;
+        million_times{end+1}=milT;
     end
 end
 
