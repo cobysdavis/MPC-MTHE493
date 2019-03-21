@@ -10,7 +10,6 @@ for i=1:length(m)
     for j=1:m(i)
         s=[s,sum(u(:,j))];
     end
-    shipped_per_day{end+1}=s;
 end
 
 
